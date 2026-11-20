@@ -19,11 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This license covers only the code written in this repository. Third-party
-projects that this repository downloads or uses (borsa-mcp, day-trader-skill,
-vectorbt and others) keep their own licenses. See TESEKKURLER.md.
-Note: vectorbt is licensed under Apache 2.0 with the Commons Clause, which
-forbids selling it or a product whose value derives substantially from it.
