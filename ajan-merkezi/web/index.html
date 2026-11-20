@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ajan Borsa Merkezi</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230b1020'/><path d='M6 22l6-7 5 4 9-11' stroke='%2334d399' stroke-width='3' fill='none' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+
+<!-- Maskotlar -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="m-kasif" viewBox="0 0 120 120">
+      <ellipse cx="60" cy="112" rx="30" ry="5" class="m-shadow"/>
+      <g class="m-body">
+        <path d="M30 34 L38 14 L50 30 Z M90 34 L82 14 L70 30 Z" fill="#0f766e"/>
+        <rect x="22" y="26" width="76" height="72" rx="34" fill="#14b8a6"/>
+        <rect x="30" y="64" width="60" height="28" rx="14" fill="#99f6e4" opacity=".55"/>
+        <circle cx="44" cy="52" r="17" fill="#0b1020"/><circle cx="76" cy="52" r="17" fill="#0b1020"/>
+        <circle cx="44" cy="52" r="17" fill="none" stroke="#f0fdfa" stroke-width="4"/>
+        <circle cx="76" cy="52" r="17" fill="none" stroke="#f0fdfa" stroke-width="4"/>
+        <rect x="58" y="49" width="4" height="6" fill="#f0fdfa"/>
+        <g class="m-eyes"><circle cx="46" cy="52" r="6" fill="#5eead4"/><circle cx="78" cy="52" r="6" fill="#5eead4"/>
+        <circle cx="48" cy="50" r="2" fill="#fff"/><circle cx="80" cy="50" r="2" fill="#fff"/></g>
+        <path d="M54 74 L60 80 L66 74" fill="#f59e0b"/>
+        <path d="M36 86 h10 M74 86 h10" stroke="#0f766e" stroke-width="3" stroke-linecap="round"/>
+      </g>
+    </symbol>
+    <symbol id="m-avci" viewBox="0 0 120 120">
+      <ellipse cx="60" cy="112" rx="30" ry="5" class="m-shadow"/>
+      <g class="m-body">
+        <path d="M24 46 L30 10 L52 32 Z M96 46 L90 10 L68 32 Z" fill="#c2410c"/>
+        <path d="M30 18 L34 36 L44 30 Z M90 18 L86 36 L76 30 Z" fill="#fed7aa"/>
+        <path d="M20 44 Q60 18 100 44 L92 84 Q60 108 28 84 Z" fill="#f97316"/>
+        <path d="M38 76 Q60 100 82 76 Q60 86 38 76 Z" fill="#fff7ed"/>
+        <rect x="28" y="44" width="64" height="18" rx="9" fill="#0b1020"/>
+        <g class="m-eyes"><rect x="38" y="49" width="14" height="8" rx="4" fill="#fde047"/><rect x="68" y="49" width="14" height="8" rx="4" fill="#fde047"/></g>
+        <rect x="31" y="47" width="58" height="3" rx="1.5" fill="#fef08a" opacity=".35" class="m-scan"/>
+        <ellipse cx="60" cy="78" rx="6" ry="4" fill="#0b1020"/>
+      </g>
+    </symbol>
+    <symbol id="m-sim" viewBox="0 0 120 120">
+      <ellipse cx="60" cy="112" rx="30" ry="5" class="m-shadow"/>
+      <g class="m-body">
+        <line x1="60" y1="22" x2="60" y2="8" stroke="#a78bfa" stroke-width="4"/>
+        <circle cx="60" cy="8" r="6" fill="#f0abfc" class="m-bulb"/>
+        <rect x="22" y="22" width="76" height="62" rx="16" fill="#8b5cf6"/>
+        <rect x="30" y="32" width="60" height="34" rx="10" fill="#0b1020"/>
+        <g class="m-eyes"><circle cx="46" cy="49" r="7" fill="#c4b5fd"/><circle cx="74" cy="49" r="7" fill="#c4b5fd"/></g>
+        <path d="M44 74 Q60 82 76 74" stroke="#ede9fe" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <rect x="12" y="44" width="10" height="20" rx="5" fill="#6d28d9"/><rect x="98" y="44" width="10" height="20" rx="5" fill="#6d28d9"/>
+        <path d="M80 88 h16 l-3 6 v6 l7 10 h-24 l7 -10 v-6 z" fill="#ede9fe" opacity=".9"/>
+        <path d="M80 104 h20 l2 6 h-24 z" fill="#f0abfc" class="m-liquid"/>
+        <circle cx="88" cy="98" r="2" fill="#f0abfc" class="m-bubble"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="#home" data-nav="home">
+      <span class="brand-mark"><svg viewBox="0 0 32 32"><path d="M5 23l7-8 5 4 10-12" /></svg></span>
+      <span class="brand-text">AJAN<b>BORSA</b></span>
+    </a>
+    <div class="tape" aria-label="Piyasa bandı"><div class="tape-track" id="tape"><span class="tape-item muted">Piyasa verisi yükleniyor…</span></div></div>
+    <div class="clocks">
+      <div class="clock"><span class="dot" id="bist-dot"></span><span>İST</span><b id="clk-ist">--:--</b></div>
+      <div class="clock"><span class="dot" id="nyse-dot"></span><span>NY</span><b id="clk-ny">--:--</b></div>
+    </div>
+  </header>
+
+  <nav class="dock" aria-label="Ajanlar">
+    <a href="#home" data-nav="home" class="dock-btn" title="Ana menü (0)">
+      <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Merkez</span></a>
+    <a href="#kasif" data-nav="kasif" class="dock-btn agent-kasif" title="Kâşif (1)">
+      <svg class="mascot-sm"><use href="#m-kasif"/></svg><span>Kâşif</span><i class="status" data-status="kasif"></i></a>
+    <a href="#avci" data-nav="avci" class="dock-btn agent-avci" title="Avcı (2)">
+      <svg class="mascot-sm"><use href="#m-avci"/></svg><span>Avcı</span><i class="status" data-status="avci"></i></a>
+    <a href="#sim" data-nav="sim" class="dock-btn agent-sim" title="Simülatör (3)">
+      <svg class="mascot-sm"><use href="#m-sim"/></svg><span>Simülatör</span><i class="status" data-status="simulator"></i></a>
+    <div class="dock-spacer"></div>
+    <button class="dock-btn" id="btn-settings" title="Ayarlar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Ayarlar</span></button>
+    <button class="dock-btn danger" id="btn-quit" title="Paneli kapat"><svg viewBox="0 0 24 24"><path d="M12 2v10M5.6 6.6a8 8 0 1 0 12.8 0"/></svg><span>Kapat</span></button>
+  </nav>
+
+  <main id="main">
+
+    <!-- ANA MENÜ -->
+    <section class="view" data-view="home">
+      <div class="hero">
+        <div class="hero-text">
+          <p class="eyebrow">Komuta Merkezi · <span id="hero-date"></span></p>
+          <h1>Üç ajan, <span class="grad">tek masa.</span></h1>
+          <p class="lede">Görev vermek istediğin ajanı seç. Kâşif veriyi bulur, Avcı BIST ve ABD seansını tarar, Simülatör fikrini geçmiş veride sınar. Hiçbiri emir göndermez; kararlar her zaman senin.</p>
+        </div>
+        <div class="hero-orbit" aria-hidden="true">
+          <div class="orbit o1"></div><div class="orbit o2"></div><div class="orbit o3"></div>
+          <svg class="orbit-m m1"><use href="#m-kasif"/></svg>
+          <svg class="orbit-m m2"><use href="#m-avci"/></svg>
+          <svg class="orbit-m m3"><use href="#m-sim"/></svg>
+        </div>
+      </div>
+
+      <div class="agent-cards">
+        <a class="agent-card c-kasif" href="#kasif" data-nav="kasif">
+          <div class="ac-top"><svg class="mascot"><use href="#m-kasif"/></svg><kbd>1</kbd></div>
+          <h2>Kâşif</h2><p class="role">Veri ve analiz ajanı · Borsa MCP</p>
+          <ul><li>BIST, ABD, fon, döviz ve kripto verisi</li><li>Bilanço, oranlar, KAP haberleri</li><li>Teknik tarama, fon karşılaştırma, enflasyon</li></ul>
+          <span class="go">Göreve gönder →</span><i class="status" data-status="kasif"></i>
+        </a>
+        <a class="agent-card c-avci" href="#avci" data-nav="avci">
+          <div class="ac-top"><svg class="mascot"><use href="#m-avci"/></svg><kbd>2</kbd></div>
+          <h2>Avcı</h2><p class="role">Gün içi ajanı · BIST ve ABD</p>
+          <ul><li>BIST teknik tarama ve KAP haberleri</li><li>Zaman Makinesi: 10.000 senaryo (BIST ve ABD)</li><li>ABD: kurulum tarayıcı, Kongre bildirimleri</li></ul>
+          <span class="go">Göreve gönder →</span><i class="status" data-status="avci"></i>
+        </a>
+        <a class="agent-card c-sim" href="#sim" data-nav="sim">
+          <div class="ac-top"><svg class="mascot"><use href="#m-sim"/></svg><kbd>3</kbd></div>
+          <h2>Simülatör</h2><p class="role">Backtest laboratuvarı · vectorbt</p>
+          <ul><li>MA, RSI ve Bollinger stratejileri</li><li>"Al ve tut" ile karşılaştırma</li><li>Parametre ısı haritası, aşırı uyum testi</li></ul>
+          <span class="go">Göreve gönder →</span><i class="status" data-status="simulator"></i>
+        </a>
+      </div>
+
+      <div class="market-strip" id="market-strip"></div>
+      <p class="disclaimer">Bu panel eğitim ve araştırma amaçlıdır, yatırım tavsiyesi değildir. Veriler ücretsiz kaynaklardan gelir ve gecikmeli olabilir.</p>
+    </section>
+
+    <!-- KÂŞİF -->
+    <section class="view agent-kasif" data-view="kasif" hidden>
+      <div class="view-head">
+        <svg class="mascot-md"><use href="#m-kasif"/></svg>
+        <div><h1>Kâşif</h1><p class="sub">Borsa MCP üzerinden <span id="k-toolcount">20+</span> veri aracı. Bir sembol ara ya da aşağıdan bir görev seç.</p></div>
+      </div>
+      <form class="searchbar" id="k-search">
+        <select id="k-market" aria-label="Piyasa">
+          <option value="bist">BIST</option><option value="us">ABD</option><option value="crypto">Kripto</option><option value="fx">Döviz/Emtia</option><option value="fund">Fon (TEFAS)</option>
+        </select>
+        <input id="k-symbol" placeholder="Sembol: THYAO, AAPL, BTCTRY, USD, AFT…" autocomplete="off" value="THYAO">
+        <select id="k-period" aria-label="Dönem"><option value="1mo">1 ay</option><option value="3mo">3 ay</option><option value="6mo">6 ay</option><option value="1y" selected>1 yıl</option><option value="5y">5 yıl</option></select>
+        <button class="btn primary" type="submit">Getir</button>
+      </form>
+      <div class="k-overview" id="k-overview"></div>
+      <h3 class="section-title">Görev kartları</h3>
+      <div class="task-grid" id="k-tasks"></div>
+      <div class="result" id="k-result"></div>
+    </section>
+
+    <!-- AVCI -->
+    <section class="view agent-avci" data-view="avci" hidden>
+      <div class="view-head">
+        <svg class="mascot-md"><use href="#m-avci"/></svg>
+        <div style="flex:1"><h1>Avcı</h1><p class="sub" id="a-sub">Gün içi masa. <span id="ny-status" class="pill"></span></p></div>
+        <div class="seg market-seg" id="a-market">
+          <button type="button" data-m="bist" class="on">Borsa İstanbul</button>
+          <button type="button" data-m="us">ABD (New York)</button>
+        </div>
+      </div>
+      <ol class="flow" id="a-flow">
+        <li data-tab="scanner" class="on"><b>1</b><span>Bul</span><small>Tarayıcı</small></li>
+        <li data-tab="news"><b>2</b><span>Haber</span><small>Son dakika</small></li>
+        <li data-tab="timemachine"><b>3</b><span>Test et</span><small>Zaman Makinesi</small></li>
+        <li data-tab="pelosi"><b>4</b><span>Takip</span><small data-us="Kongre" data-bist="Günün hareketlileri">Kongre</small></li>
+        <li data-tab="analyst"><b>5</b><span>Bilanço</span><small data-us="SEC analist" data-bist="KAP finansalları">Analist</small></li>
+        <li data-tab="broker" class="locked"><b>🔒</b><span>Emir</span><small data-us="Alpaca paper" data-bist="Desteklenmiyor">Alpaca paper</small></li>
+      </ol>
+      <div class="a-panel" id="a-panel"></div>
+      <div class="result" id="a-result"></div>
+    </section>
+
+    <!-- SİMÜLATÖR -->
+    <section class="view agent-sim" data-view="sim" hidden>
+      <div class="view-head">
+        <svg class="mascot-md"><use href="#m-sim"/></svg>
+        <div><h1>Simülatör</h1><p class="sub">vectorbt ile stratejini geçmiş veride test et. İlk çalıştırma derleme yüzünden 20–40 sn sürebilir.</p></div>
+      </div>
+      <div class="sim-layout">
+        <form class="card sim-form" id="s-form">
+          <div class="seg" id="s-mode">
+            <button type="button" data-mode="single" class="on">Tekli test</button>
+            <button type="button" data-mode="sweep">Isı haritası</button>
+            <button type="button" data-mode="overfit">Aşırı uyum</button>
+          </div>
+          <label>Varlık
+            <div class="row2"><select name="market"><option value="bist">BIST</option><option value="us">ABD</option><option value="crypto">Kripto</option><option value="index">Endeks</option></select>
+            <input name="symbol" value="THYAO" required></div></label>
+          <label class="only-single">Strateji
+            <select name="strategy" id="s-strategy"><option value="ma">Hareketli ortalama kesişimi</option><option value="rsi">RSI (aşırı satım/alım)</option><option value="bb">Bollinger bantları</option></select></label>
+          <div class="params only-single" data-for="ma"><label>Hızlı MA<input name="fast" type="number" value="10" min="2"></label><label>Yavaş MA<input name="slow" type="number" value="50" min="3"></label></div>
+          <div class="params only-single" data-for="rsi" hidden><label>Pencere<input name="rsi_window" type="number" value="14"></label><label>Alt<input name="rsi_low" type="number" value="30"></label><label>Üst<input name="rsi_high" type="number" value="70"></label></div>
+          <div class="params only-single" data-for="bb" hidden><label>Pencere<input name="bb_window" type="number" value="20"></label><label>Sapma<input name="bb_alpha" type="number" value="2" step="0.5"></label></div>
+          <div class="params only-sweep" hidden><label>MA min<input name="sweep_min" type="number" value="5"></label><label>MA maks<input name="sweep_max" type="number" value="100"></label><label>Adım<input name="sweep_step" type="number" value="5"></label>
+            <label style="grid-column:1/-1">Ölçüt<select name="metric"><option value="total_return">Toplam getiri</option><option value="sharpe">Sharpe</option></select></label></div>
+          <div class="params"><label>Başlangıç<input name="start" type="date"></label><label>Bitiş<input name="end" type="date"></label></div>
+          <div class="params"><label>Sermaye<input name="cash" type="number" value="10000"></label><label>Komisyon %<input name="fees" type="number" value="0.1" step="0.01"></label><label>Kayma %<input name="slippage" type="number" value="0.05" step="0.01"></label></div>
+          <div class="params"><label>Zarar durdur %<input name="sl" type="number" value="0" step="0.5"></label><label>Kâr al %<input name="tp" type="number" value="0" step="0.5"></label></div>
+          <p class="hint">Tarih boşsa son 5 yıl kullanılır. BIST hisseleri otomatik olarak <code>.IS</code> ekiyle aranır.</p>
+          <button class="btn primary big" type="submit">Simülasyonu başlat</button>
+        </form>
+        <div class="sim-out" id="s-out">
+          <div class="empty-state"><svg class="mascot-lg"><use href="#m-sim"/></svg><p>Soldan bir strateji seç ve başlat. Sonuçlar, grafikler ve Simülatör'ün yorumu burada belirecek.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="settings">
+  <form method="dialog" class="dlg">
+    <h2>Ayarlar</h2>
+    <label>SEC User-Agent <small>(Avcı'nın Bilanço ve SEC haberleri için; SEC "Ad Soyad e-posta" biçimini zorunlu tutuyor)</small>
+      <input id="set-ua" placeholder="Ad Soyad ornek@eposta.com"></label>
+    <div class="note"><b>Alpaca (emir adımı)</b><p>Panel emir göndermez. Paper hesabı açtıysan anahtarları sohbete ya da buraya yazma; Windows ortam değişkenlerine kendin ekle ve emir adımını Claude Code'da <code>/trader-broker</code> ile, onay vererek kullan.</p></div>
+    <div class="dlg-actions"><button class="btn" value="cancel">Vazgeç</button><button class="btn primary" id="set-save" value="ok">Kaydet</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

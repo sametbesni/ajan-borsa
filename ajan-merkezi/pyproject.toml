@@ -1,0 +1,9 @@
+[project]
+name = "ajan-merkezi"
+version = "1.0.0"
+description = "Ajan Borsa komuta merkezi: borsa-mcp, day-trader-skill ve vectorbt icin yerel web paneli"
+requires-python = ">=3.11"
+dependencies = ["starlette>=0.40", "uvicorn>=0.30", "fastmcp>=4.0.3"]
+
+[tool.uv]
+package = false

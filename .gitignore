@@ -1,0 +1,21 @@
+# Üçüncü taraf projeler: kur.ps1 bunları kendi depolarından indirir, bu depoya konmaz
+/borsa-mcp/
+/day-trader-skill/
+/.claude/skills/
+
+# Sanal ortamlar ve önbellek
+.venv/
+__pycache__/
+*.pyc
+
+# Yerel çalışma verisi, ayarlar ve günlükler (kişisel bilgi içerebilir)
+/trader/
+/ajan-merkezi/settings.json
+/ajan-merkezi/panel.log
+*.log
+.env
+.env.*
+/.claude/settings.local.json
+
+# Makineye özel notlar
+/KURULUM-NOTLARI.md
