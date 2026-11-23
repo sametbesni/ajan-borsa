@@ -21,6 +21,8 @@ import uvicorn
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse
 from starlette.routing import Mount, Route
@@ -493,7 +495,17 @@ async def lifespan(_app):
     await borsa_bg.stop()
 
 
+class NoCache(BaseHTTPMiddleware):
+    """Tarayıcı (özellikle Edge uygulama penceresi) eski arayüz dosyalarını önbellekte tutmasın."""
+
+    async def dispatch(self, request, call_next):
+        resp = await call_next(request)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+
+
 app = Starlette(
+    middleware=[Middleware(NoCache)],
     routes=[
         Route("/", index),
         Route("/api/status", api_status),
