@@ -192,6 +192,7 @@ function tickClock() {
 async function refreshStatus() {
   try {
     const s = await api("/api/status");
+    if (s.boot) { if (window.__boot && window.__boot !== s.boot) { location.reload(); return; } window.__boot = s.boot; }
     for (const [k, v] of Object.entries(s)) $$(`[data-status="${k}"]`).forEach((el) => { el.className = "status " + (v.ok ? "ok" : "err"); el.title = v.ok ? "Hazır" : v.error || "Hazır değil"; });
   } catch { /* sunucu kapanmış olabilir */ }
 }
@@ -758,6 +759,6 @@ $("#btn-quit").addEventListener("click", async () => {
 /* ---------------------------------------------------------------- başlat */
 Sim.init();
 tickClock(); setInterval(tickClock, 15000);
-refreshStatus(); setInterval(refreshStatus, 30000);
+refreshStatus(); setInterval(refreshStatus, 8000);
 refreshTape(); setInterval(refreshTape, 120000);
 route();

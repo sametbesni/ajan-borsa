@@ -39,6 +39,7 @@ TRADER_DIR = ROOT / "day-trader-skill"
 BACKTEST_WORKER = HERE / "workers" / "backtest.py"
 
 HOST, PORT = "127.0.0.1", int(os.environ.get("AJAN_PORT", "8765"))
+BOOT = str(int(time.time()))  # sunucu her başladığında değişir; açık sayfalar bunu görünce kendini yeniler
 
 # ---------------------------------------------------------------- ayarlar
 
@@ -289,6 +290,7 @@ async def api_status(_: Request):
         "avci": {"ok": TRADER_DIR.exists(), "sec_ua": bool(load_settings().get("sec_user_agent"))},
         "simulator": {"ok": VBT_PY.exists()},
         "port": PORT,
+        "boot": BOOT,
     })
 
 
