@@ -124,7 +124,7 @@
         <a class="agent-card c-sim" href="#sim" data-nav="sim">
           <div class="ac-top"><svg class="mascot"><use href="#m-sim"/></svg><kbd>3</kbd></div>
           <h2>Simülatör</h2><p class="role">Backtest laboratuvarı · vectorbt</p>
-          <ul><li>MA, RSI ve Bollinger stratejileri</li><li>"Al ve tut" ile karşılaştırma</li><li>Parametre ısı haritası, aşırı uyum testi</li></ul>
+          <ul><li>MA, RSI ve Bollinger stratejileri</li><li>"Al ve tut" ile karşılaştırma</li><li>Isı haritası, aşırı uyum testi</li><li>Senaryo haritası: BIST hisse ve fonları</li></ul>
           <span class="go">Göreve gönder →</span><i class="status" data-status="simulator"></i>
         </a>
       </div>
@@ -187,9 +187,10 @@
             <button type="button" data-mode="single" class="on">Tekli test</button>
             <button type="button" data-mode="sweep">Isı haritası</button>
             <button type="button" data-mode="overfit">Aşırı uyum</button>
+            <button type="button" data-mode="scenario">Senaryo</button>
           </div>
           <label>Varlık
-            <div class="row2"><select name="market"><option value="bist">BIST</option><option value="us">ABD</option><option value="crypto">Kripto</option><option value="index">Endeks</option></select>
+            <div class="row2"><select name="market"><option value="bist">BIST</option><option value="us">ABD</option><option value="crypto">Kripto</option><option value="index">Endeks</option><option value="fund">Fon (TEFAS)</option></select>
             <input name="symbol" value="THYAO" required></div></label>
           <label class="only-single">Strateji
             <select name="strategy" id="s-strategy"><option value="ma">Hareketli ortalama kesişimi</option><option value="rsi">RSI (aşırı satım/alım)</option><option value="bb">Bollinger bantları</option></select></label>
@@ -198,10 +199,20 @@
           <div class="params only-single" data-for="bb" hidden><label>Pencere<input name="bb_window" type="number" value="20"></label><label>Sapma<input name="bb_alpha" type="number" value="2" step="0.5"></label></div>
           <div class="params only-sweep" hidden><label>MA min<input name="sweep_min" type="number" value="5"></label><label>MA maks<input name="sweep_max" type="number" value="100"></label><label>Adım<input name="sweep_step" type="number" value="5"></label>
             <label style="grid-column:1/-1">Ölçüt<select name="metric"><option value="total_return">Toplam getiri</option><option value="sharpe">Sharpe</option></select></label></div>
-          <div class="params"><label>Başlangıç<input name="start" type="date"></label><label>Bitiş<input name="end" type="date"></label></div>
-          <div class="params"><label>Sermaye<input name="cash" type="number" value="10000"></label><label>Komisyon %<input name="fees" type="number" value="0.1" step="0.01"></label><label>Kayma %<input name="slippage" type="number" value="0.05" step="0.01"></label></div>
-          <div class="params"><label>Zarar durdur %<input name="sl" type="number" value="0" step="0.5"></label><label>Kâr al %<input name="tp" type="number" value="0" step="0.5"></label></div>
-          <p class="hint">Tarih boşsa son 5 yıl kullanılır. BIST hisseleri otomatik olarak <code>.IS</code> ekiyle aranır.</p>
+          <div class="only-scenario" hidden>
+            <div class="params"><label>Ufuk<select name="horizon"><option value="5">1 hafta</option><option value="21">1 ay</option><option value="63" selected>3 ay</option><option value="126">6 ay</option><option value="252">1 yıl</option></select></label>
+            <label>Geçmiş penceresi<select name="years"><option value="1">1 yıl</option><option value="2">2 yıl</option><option value="3" selected>3 yıl</option><option value="5">5 yıl</option></select></label></div>
+            <label>Beklenen getiri varsayımı<select name="drift" id="s-drift"><option value="zero">Sıfır (yalnızca oynaklık)</option><option value="hist">Geçmiş ortalama</option><option value="custom">Kendim gireyim</option></select></label>
+            <label id="s-drift-custom" hidden>Yıllık getiri %<input name="drift_pct" type="number" value="0" step="1"></label>
+            <p class="sub-title">"Ya şöyle olursa?" (isteğe bağlı)</p>
+            <div class="params"><label>Ani değişim %<input name="shock_pct" type="number" value="0" step="1"></label><label>Kaçıncı işlem günü<input name="shock_day" type="number" value="1" min="1" max="252"></label></div>
+            <label>Oynaklık çarpanı <output id="s-vm-out">1,0×</output><input name="vol_mult" id="s-vm" type="range" min="0.5" max="2" step="0.1" value="1"></label>
+            <p class="hint">Bu bir tahmin değildir: geçmiş hareketlerden üretilmiş olası yollardır.</p>
+          </div>
+          <div class="params hide-scenario"><label>Başlangıç<input name="start" type="date"></label><label>Bitiş<input name="end" type="date"></label></div>
+          <div class="params hide-scenario"><label>Sermaye<input name="cash" type="number" value="10000"></label><label>Komisyon %<input name="fees" type="number" value="0.1" step="0.01"></label><label>Kayma %<input name="slippage" type="number" value="0.05" step="0.01"></label></div>
+          <div class="params hide-scenario"><label>Zarar durdur %<input name="sl" type="number" value="0" step="0.5"></label><label>Kâr al %<input name="tp" type="number" value="0" step="0.5"></label></div>
+          <p class="hint hide-scenario">Tarih boşsa son 5 yıl kullanılır. BIST hisseleri otomatik olarak <code>.IS</code> ekiyle aranır.</p>
           <button class="btn primary big" type="submit">Simülasyonu başlat</button>
         </form>
         <div class="sim-out" id="s-out">

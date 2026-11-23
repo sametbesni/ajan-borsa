@@ -100,6 +100,11 @@ function table(columns, rows, opts = {}) {
   draw(); t.append(thead, tbody);
   return h("div", { class: "tbl-wrap" }, t);
 }
+function rawTable(headers, rows) {
+  return h("div", { class: "tbl-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, headers.map((x) => h("th", {}, x)))),
+    h("tbody", {}, rows.map((r) => h("tr", {}, r.map((c) => (c instanceof Node ? c : h("td", {}, String(c)))))))));
+}
+const numCell = (v, d = 1) => h("td", { class: "num " + cls(v) }, pct(v, d));
 function renderSections(sections, rawText) {
   const box = h("div");
   for (const s of sections) {
@@ -557,6 +562,8 @@ const Sim = {
     $$("#s-mode button").forEach((b) => b.addEventListener("click", () => this.setMode(b.dataset.mode)));
     $("#s-strategy").addEventListener("change", () => this.toggle());
     $("#s-form").addEventListener("submit", (e) => { e.preventDefault(); this.run(); });
+    $("#s-drift").addEventListener("change", () => ($("#s-drift-custom").hidden = $("#s-drift").value !== "custom"));
+    $("#s-vm").addEventListener("input", () => ($("#s-vm-out").textContent = (+$("#s-vm").value).toLocaleString("tr-TR", { minimumFractionDigits: 1 }) + "×"));
     this.toggle();
   },
   setMode(m) { this.mode = m; $$("#s-mode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m)); this.toggle(); },
@@ -564,22 +571,122 @@ const Sim = {
     const st = $("#s-strategy").value;
     $$(".only-single").forEach((el) => (el.hidden = this.mode !== "single" || (el.dataset.for && el.dataset.for !== st)));
     $$(".only-sweep").forEach((el) => (el.hidden = this.mode !== "sweep"));
+    $$(".only-scenario").forEach((el) => (el.hidden = this.mode !== "scenario"));
+    $$(".hide-scenario").forEach((el) => (el.hidden = this.mode === "scenario"));
   },
   async run() {
     const v = Object.fromEntries(new FormData($("#s-form")));
     const body = { symbol: v.symbol, market: v.market, strategy: this.mode === "single" ? v.strategy : "ma", mode: this.mode, start: v.start, end: v.end, metric: v.metric, params: v };
     const out = $("#s-out"), btn = $("#s-form button[type=submit]");
     btn.disabled = true;
-    out.replaceChildren(loader("m-sim", this.mode === "sweep" ? "Simülatör yüzlerce kombinasyonu deniyor" : "Simülatör geçmişi yeniden oynatıyor"));
+    out.replaceChildren(loader("m-sim", this.mode === "sweep" ? "Simülatör yüzlerce kombinasyonu deniyor" : this.mode === "scenario" ? "Simülatör 10.000 olası yolu çiziyor" : "Simülatör geçmişi yeniden oynatıyor"));
     try {
-      const r = await api("/api/backtest", body);
-      if (!r.ok) out.replaceChildren(errorBox(r.error));
-      else out.replaceChildren(this.mode === "sweep" ? this.sweep(r) : this.mode === "overfit" ? this.overfit(r) : this.single(r));
+      if (this.mode === "scenario") {
+        const r = await api("/api/scenario", { symbol: v.symbol, market: v.market, horizon: +v.horizon, years: +v.years, drift: v.drift, drift_pct: +v.drift_pct, shock_pct: +v.shock_pct, shock_day: +v.shock_day, vol_mult: +v.vol_mult });
+        out.replaceChildren(r.ok ? this.scenario(r) : errorBox(r.error));
+      } else if (v.market === "fund") {
+        out.replaceChildren(errorBox("Fonlar için yalnızca Senaryo modu kullanılabilir (backtest verisi borsa hisseleri içindir)."));
+      } else {
+        const r = await api("/api/backtest", body);
+        if (!r.ok) out.replaceChildren(errorBox(r.error));
+        else out.replaceChildren(this.mode === "sweep" ? this.sweep(r) : this.mode === "overfit" ? this.overfit(r) : this.single(r));
+      }
     } catch (e) { out.replaceChildren(errorBox(e.message)); }
     btn.disabled = false;
   },
   metric(lbl, val, sub, c = "") { return h("div", { class: "metric" }, h("small", {}, lbl), h("b", { class: c }, val), sub ? h("em", {}, sub) : null); },
   speech(notes) { return h("div", { class: "speech agent-sim" }, svgUse("m-sim", ""), h("div", { class: "bubble" }, notes.map((n) => h("p", {}, n)))); },
+  scenario(r) {
+    const hz = r.horizon, last = r.last, B = r.bands;
+    const at = (k) => (B[k][hz] / last - 1) * 100;
+    const box = h("div");
+    box.append(h("div", { class: "res-head" }, h("h3", {}, `${r.symbol} · Senaryo Haritası`), h("small", { class: "muted" }, `son fiyat ${fmt(last)} (${r.last_date}) · ufuk ${hz} işlem günü`)));
+    box.append(h("div", { class: "verdict warn" }, "Bu bir tahmin değil, senaryodur. Geçmişte görülen hareketlerden üretilmiş olası yollardır; geçmişte hiç yaşanmamış olayları içermez."));
+    box.append(h("div", { class: "metrics" },
+      this.metric("Ortanca senaryo", pct(at("p50")), `${fmt(B.p50[hz])} civarı`, cls(at("p50"))),
+      this.metric("%90 aralığı", `${pct(at("p5"), 0)} / ${pct(at("p95"), 0)}`, `${fmt(B.p5[hz])} – ${fmt(B.p95[hz])}`),
+      this.metric("Yükselme olasılığı", "%" + fmt(r.probs.up, 0), "bugünkü fiyatın üstünde bitme"),
+      this.metric("≥ +%10 olasılığı", "%" + fmt(r.probs.gt10, 0), "güçlü yükseliş senaryosu", "up"),
+      this.metric("≤ −%10 olasılığı", "%" + fmt(r.probs.lt10, 0), "−%20 ve altı: %" + fmt(r.probs.lt20, 0), "down"),
+      this.metric("Yıllık oynaklık", "%" + fmt(r.stats.ann_vol, 0), "son 30 gün: %" + fmt(r.stats.recent_vol, 0)),
+      this.metric("Geçmiş maks. düşüş", pct(r.stats.max_dd, 0), `${r.stats.from} → ${r.stats.to}`, "down"),
+      this.metric("En kötü / en iyi gün", `${pct(r.stats.worst_day, 1)} / ${pct(r.stats.best_day, 1)}`, `${fmt(r.stats.days, 0)} işlem günü`)));
+    box.append(this.speech(r.notes));
+
+    const lg = (bg, lbl, hgt) => h("span", {}, h("i", { style: `background:${bg};${hgt ? "height:9px" : ""}` }), lbl);
+    const coneWrap = h("div", { class: "cone-wrap" });
+    box.append(h("div", { class: "card", style: "margin-bottom:14px" }, h("h4", { class: "section-title", style: "margin:0 0 8px" }, "Olasılık konisi"),
+      h("div", { class: "legend" }, lg("#e2e8f0", "Geçmiş fiyat"), lg("#a78bfa", "Ortanca senaryo"), lg("rgba(167,139,250,.55)", "%50 aralık", 1), lg("rgba(167,139,250,.22)", "%90 aralık", 1)), coneWrap));
+    const histWrap = h("div", { class: "cone-wrap" });
+    box.append(h("div", { class: "card", style: "margin-bottom:14px" }, h("h4", { class: "section-title", style: "margin:0 0 8px" }, `${hz} işlem günü sonraki olası getiri dağılımı`), histWrap));
+    this.drawCone(coneWrap, r);
+    this.drawHist(histWrap, r, at("p50"));
+
+    const HZ = { 5: "1 hafta (5 gün)", 21: "1 ay (21 gün)", 63: "3 ay (63 gün)", 126: "6 ay (126 gün)", 252: "1 yıl (252 gün)" };
+    box.append(h("div", { class: "sec" }, h("h4", { style: "color:var(--sim)" }, "Ufka göre olası getiri aralıkları"),
+      rawTable(["Ufuk", "Kötü (%5)", "%25", "Ortanca", "%75", "İyi (%95)", "Yükselme olasılığı"],
+        r.table.map((t) => [HZ[t.days] || t.days + " gün", numCell(t.p5), numCell(t.p25), numCell(t.p50), numCell(t.p75), numCell(t.p95), h("td", { class: "num" }, "%" + fmt(t.p_up, 0))]))));
+
+    const a = r.analog || { count: 0 };
+    const ac = h("div", { class: "card", style: "margin-top:14px" }, h("h4", { class: "section-title", style: "margin:0 0 8px" }, "Benzer geçmiş durumlar"));
+    if (a.count > 0) {
+      ac.append(h("p", { class: "hint" }, `Geçmişte son 5 işlem gününde %${fmt(Math.abs(a.trigger), 0)} ve üzeri ${a.trigger < 0 ? "düşüş" : "yükseliş"} yaşanan ${a.count} durum bulundu; ${a.horizon} işlem günü sonrasına bakıldı. Örnek sayısı azsa sonuca güvenme.`));
+      ac.append(h("div", { class: "metrics", style: "margin-top:10px" },
+        this.metric("Benzer durum", fmt(a.count, 0), "birbirinden ≥5 gün ayrı"), this.metric("Sonra yükselen", "%" + fmt(a.pos, 0), "durumların oranı"),
+        this.metric("Ortanca sonuç", pct(a.median), "ortalama " + pct(a.mean), cls(a.median)), this.metric("Dağılım", `${pct(a.p10, 0)} / ${pct(a.p90, 0)}`, "%10 – %90")));
+      ac.append(rawTable(["Tarih", "Önceki 5 gün", `Sonraki ${a.horizon} gün`], a.events.map((e) => [e.date, numCell(e.before), numCell(e.after)])));
+    } else ac.append(h("p", { class: "muted" }, "Bu eşikte geçmişte benzer bir durum bulunamadı."));
+    box.append(ac);
+    box.append(h("p", { class: "hint", style: "margin-top:12px" }, "Seans takvimi hafta sonlarını atlar, resmî tatiller hesaba katılmaz; tarihler yaklaşıktır. Bu sayfa yatırım tavsiyesi değildir."));
+    return box;
+  },
+  drawCone(wrap, r) {
+    const W = 920, H = 380, L = 12, R = 74, T = 14, Bt = 30;
+    const hz = r.horizon, nh = Math.min(90, r.history.length), hist = r.history.slice(-nh), total = nh - 1 + hz;
+    const F = {}; for (const k of ["p5", "p25", "p50", "p75", "p95"]) F[k] = r.bands[k].slice(0, hz + 1);
+    const x = (i) => L + (i / total) * (W - L - R), xf = (j) => x(nh - 1 + j);
+    const all = [...hist.map((p) => p.value), ...F.p5, ...F.p95];
+    let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+    const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - Bt);
+    const f1 = (n) => n.toFixed(1);
+    const band = (a, b) => F[a].map((v, j) => `${f1(xf(j))},${f1(y(v))}`).join(" ") + " " + F[b].map((_, j) => { const jj = hz - j; return `${f1(xf(jj))},${f1(y(F[b][jj]))}`; }).join(" ");
+    const path = (arr, X) => arr.map((v, i) => `${i ? "L" : "M"}${f1(X(i))},${f1(y(v))}`).join("");
+    let grid = "";
+    for (let t = 0; t <= 4; t++) { const v = lo + ((hi - lo) * t) / 4; grid += `<line x1="${L}" x2="${W - R}" y1="${f1(y(v))}" y2="${f1(y(v))}" stroke="rgba(148,163,184,.10)"/><text x="${W - R + 6}" y="${f1(y(v) + 4)}">${fmt(v)}</text>`; }
+    const endLbl = (k, c) => `<text x="${f1(xf(hz) + 6)}" y="${f1(y(F[k][hz]) + 4)}" style="fill:${c}">${fmt(F[k][hz])}</text>`;
+    const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Olasılık konisi">${grid}
+      <polygon points="${band("p5", "p95")}" fill="rgba(167,139,250,.16)"/><polygon points="${band("p25", "p75")}" fill="rgba(167,139,250,.30)"/>
+      <line x1="${f1(xf(0))}" x2="${f1(xf(0))}" y1="${T}" y2="${H - Bt}" stroke="rgba(148,163,184,.45)" stroke-dasharray="4 4"/>
+      <path d="${path(hist.map((p) => p.value), x)}" stroke="#e2e8f0" stroke-width="1.8" fill="none"/>
+      <path d="${path(F.p50, xf)}" stroke="#a78bfa" stroke-width="2.4" fill="none"/>
+      ${endLbl("p95", "#86efac")}${endLbl("p50", "#c4b5fd")}${endLbl("p5", "#fda4af")}
+      <text x="${f1(x(0))}" y="${H - 8}">${hist[0].time}</text><text x="${f1(xf(0))}" y="${H - 8}" text-anchor="middle">bugün</text><text x="${f1(xf(hz))}" y="${H - 8}" text-anchor="end">${r.dates[hz]}</text>
+      <line id="cone-v" x1="0" x2="0" y1="${T}" y2="${H - Bt}" stroke="rgba(226,232,240,.5)" style="display:none"/>
+      <rect id="cone-hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - Bt}" fill="transparent"/></svg>`;
+    wrap.innerHTML = svg;
+    const tip = h("div", { class: "cone-tip" }); wrap.append(tip);
+    const el = $("svg", wrap), vl = $("#cone-v", wrap);
+    $("#cone-hit", wrap).addEventListener("mousemove", (e) => {
+      const rc = el.getBoundingClientRect(), mx = ((e.clientX - rc.left) / rc.width) * W;
+      const i = Math.max(0, Math.min(total, Math.round(((mx - L) / (W - L - R)) * total)));
+      vl.style.display = ""; vl.setAttribute("x1", x(i)); vl.setAttribute("x2", x(i));
+      if (i < nh) tip.innerHTML = `${hist[i].time}<br>fiyat <b>${fmt(hist[i].value)}</b>`;
+      else { const j = i - (nh - 1); tip.innerHTML = `${r.dates[j]} · ${j}. gün<br>iyi (%95) <b>${fmt(F.p95[j])}</b><br>ortanca <b>${fmt(F.p50[j])}</b><br>kötü (%5) <b>${fmt(F.p5[j])}</b>`; }
+      tip.style.display = "block";
+      const wr = wrap.getBoundingClientRect(), px = e.clientX - wr.left;
+      tip.style.left = (px > wr.width * 0.65 ? px - tip.offsetWidth - 14 : px + 14) + "px";
+    });
+    $("#cone-hit", wrap).addEventListener("mouseleave", () => { vl.style.display = "none"; tip.style.display = "none"; });
+  },
+  drawHist(wrap, r, med) {
+    const W = 920, H = 210, L = 12, R = 12, T = 26, Bt = 30, c = r.hist.counts, e = r.hist.edges, mx = Math.max(...c);
+    const x = (v) => L + ((v - e[0]) / (e[e.length - 1] - e[0])) * (W - L - R), f1 = (n) => n.toFixed(1);
+    let bars = "";
+    c.forEach((n, i) => { const x0 = x(e[i]), w = x(e[i + 1]) - x0 - 1, hh = (n / mx) * (H - T - Bt); bars += `<rect x="${f1(x0)}" y="${f1(H - Bt - hh)}" width="${f1(Math.max(w, 1))}" height="${f1(hh)}" rx="2" fill="${(e[i] + e[i + 1]) / 2 >= 0 ? "rgba(34,197,94,.72)" : "rgba(244,63,94,.72)"}"><title>${pct(e[i], 0)} ile ${pct(e[i + 1], 0)}: ${n} yol</title></rect>`; });
+    const zero = e[0] < 0 && e[e.length - 1] > 0 ? `<line x1="${f1(x(0))}" x2="${f1(x(0))}" y1="${T}" y2="${H - Bt}" stroke="rgba(226,232,240,.6)" stroke-dasharray="4 4"/><text x="${f1(x(0))}" y="${H - 10}" text-anchor="middle">0 (bugünkü fiyat)</text>` : "";
+    const m = med >= e[0] && med <= e[e.length - 1] ? `<line x1="${f1(x(med))}" x2="${f1(x(med))}" y1="${T}" y2="${H - Bt}" stroke="#a78bfa" stroke-width="2"/><text x="${f1(x(med))}" y="${T - 10}" text-anchor="middle" style="fill:#c4b5fd">ortanca ${pct(med, 1)}</text>` : "";
+    wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Getiri dağılımı">${bars}${zero}${m}<text x="${L}" y="${H - 10}">${pct(e[0], 0)}</text><text x="${W - R}" y="${H - 10}" text-anchor="end">${pct(e[e.length - 1], 0)}</text></svg>`;
+  },
   single(r) {
     const m = r.metrics, box = h("div");
     box.append(h("div", { class: "res-head" }, h("h3", {}, `${r.symbol} · ${r.strategy_name}`), h("small", { class: "muted" }, `${r.from} → ${r.to}`)));

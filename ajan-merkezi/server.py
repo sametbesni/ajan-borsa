@@ -397,6 +397,58 @@ async def api_bist_timemachine(req: Request):
     return JSONResponse({"ok": True, "data": data})
 
 
+SCENARIO_WORKER = HERE / "workers" / "scenario.py"
+
+
+async def fund_series(code: str, years: int) -> list | str:
+    """TEFAS fon geçmişi: uzun aralıklar seyreltildiği için 1'er yıllık parçalar halinde çekilir."""
+    from datetime import date, timedelta
+    end, rows = date.today(), {}
+    for i in range(years):
+        e = end - timedelta(days=365 * i)
+        s = e - timedelta(days=365)
+        r = await borsa.call("get_historical_data", {"symbol": code, "market": "fund", "start_date": s.isoformat(), "end_date": e.isoformat()}, ttl=600)
+        if not r.get("ok"):
+            if i == 0:
+                return r.get("error") or "Fon verisi alınamadı"
+            break
+        tbl = next((t for sec in r["sections"] for t in sec["tables"] if "close" in t["columns"]), None)
+        if not tbl:
+            break
+        d, c = tbl["columns"].index("date"), tbl["columns"].index("close")
+        for row in tbl["rows"]:
+            if isinstance(row[c], (int, float)):
+                rows[str(row[d])[:10]] = float(row[c])
+    if len(rows) < 120:
+        return f"{code} fonu için yeterli geçmiş fiyat bulunamadı ({len(rows)} gün)"
+    return sorted(rows.items())
+
+
+async def api_scenario(req: Request):
+    body = await req.json()
+    market = body.get("market") if body.get("market") in ("bist", "us", "crypto", "index", "fund") else "bist"
+    sym = re.sub(r"[^A-Z0-9.\-^=]", "", str(body.get("symbol", "")).upper())[:15]
+    if not sym:
+        return JSONResponse({"ok": False, "error": "Sembol boş olamaz"})
+    clean = {"symbol": sym, "market": market, "horizon": body.get("horizon", 63), "years": body.get("years", 3), "drift": body.get("drift", "zero"),
+             "drift_pct": body.get("drift_pct", 0), "shock_pct": body.get("shock_pct", 0), "shock_day": body.get("shock_day", 1), "vol_mult": body.get("vol_mult", 1)}
+    for k in ("horizon", "years", "drift_pct", "shock_pct", "shock_day", "vol_mult"):
+        clean[k] = _f(clean[k], 0 if k in ("drift_pct", "shock_pct") else 1)
+    if clean["drift"] not in ("zero", "hist", "custom"):
+        clean["drift"] = "zero"
+    if market == "fund":
+        res = await fund_series(sym, int(min(max(clean["years"], 1), 5)))
+        if isinstance(res, str):
+            return JSONResponse({"ok": False, "error": res})
+        clean["series"] = res
+    code, out, err = await run_proc([str(VBT_PY), str(SCENARIO_WORKER)], HERE, stdin=json.dumps(clean).encode(), timeout=300)
+    try:
+        return JSONResponse(json.loads(out.strip().splitlines()[-1]))
+    except (ValueError, IndexError):
+        tail = [ln for ln in err.strip().splitlines() if ln.strip()]
+        return JSONResponse({"ok": False, "error": tail[-1] if tail else "Senaryo çalışmadı", "stderr": err[-1500:]})
+
+
 _hist_cache: dict[str, tuple[float, dict]] = {}
 
 
@@ -451,6 +503,7 @@ app = Starlette(
         Route("/api/trader/{tool}", api_trader, methods=["POST"]),
         Route("/api/backtest", api_backtest, methods=["POST"]),
         Route("/api/history", api_history),
+        Route("/api/scenario", api_scenario, methods=["POST"]),
         Route("/api/bist/timemachine", api_bist_timemachine, methods=["POST"]),
         Route("/api/settings", api_settings, methods=["GET", "POST"]),
         Route("/api/shutdown", api_shutdown, methods=["POST"]),

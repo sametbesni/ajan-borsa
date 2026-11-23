@@ -9,7 +9,7 @@ tek tıkla kurar ve hepsine tek bir görsel panelden ulaşmanı sağlar.
 |---|---|---|---|
 | 🦉 **Kâşif** | [borsa-mcp](https://github.com/saidsurucu/borsa-mcp) | [@saidsurucu](https://github.com/saidsurucu) (Said Sürücü) | BIST, ABD, fon, döviz, kripto ve makro verisi; bilanço, oranlar, KAP haberleri, teknik tarama |
 | 🦊 **Avcı** | [day-trader-skill](https://github.com/Jakeschincariol/day-trader-skill) + Borsa MCP | [@Jakeschincariol](https://github.com/Jakeschincariol) (Jake Schincariol) | **BIST modu:** teknik tarama, KAP haberleri, finansallar, BIST Zaman Makinesi. **ABD modu:** kurulum tarayıcı, haber, 10.000 simülasyonluk Zaman Makinesi, Kongre bildirimleri |
-| 🤖 **Simülatör** | [vectorbt](https://github.com/polakowo/vectorbt) | [@polakowo](https://github.com/polakowo) (Oleg Polakow) | MA / RSI / Bollinger backtest, "al ve tut" karşılaştırması, parametre ısı haritası, aşırı uyum testi |
+| 🤖 **Simülatör** | [vectorbt](https://github.com/polakowo/vectorbt) | [@polakowo](https://github.com/polakowo) (Oleg Polakow) | MA / RSI / Bollinger backtest, "al ve tut" karşılaştırması, ısı haritası, aşırı uyum testi. **Senaryo Haritası:** BIST/ABD hisse, endeks, kripto ve TEFAS fonları için olasılık konisi |
 
 > Asıl emek bu projelerin sahiplerine aittir. Ayrıntılar, lisanslar ve diğer kütüphaneler: **[TESEKKURLER.md](TESEKKURLER.md)**
 
@@ -24,6 +24,8 @@ tek tıkla kurar ve hepsine tek bir görsel panelden ulaşmanı sağlar.
 | ![Avcı BIST tarama](ajan-merkezi/ekran-goruntuleri/6-avci-bist-tarama.jpg) | ![Avcı Zaman Makinesi](ajan-merkezi/ekran-goruntuleri/3-avci-zaman-makinesi.jpg) |
 | **Simülatör** | **Simülatör · Isı haritası** |
 | ![Simülatör](ajan-merkezi/ekran-goruntuleri/4-simulator.jpg) | ![Isı haritası](ajan-merkezi/ekran-goruntuleri/5-simulator-isi-haritasi.jpg) |
+| **Senaryo Haritası · olasılık konisi** | **Senaryo Haritası · fon + "ya şöyle olursa"** |
+| ![Senaryo konisi](ajan-merkezi/ekran-goruntuleri/7-senaryo-konisi-thyao.jpg) | ![Fon senaryosu](ajan-merkezi/ekran-goruntuleri/8-senaryo-fon-ya-soyle-olursa.jpg) |
 
 ## Kurulum (Windows)
 
@@ -47,6 +49,14 @@ powershell -ExecutionPolicy Bypass -File .\kur.ps1 -Kisayol
 - **Geçiş:** sol menü ya da klavyede `0` Merkez, `1` Kâşif, `2` Avcı, `3` Simülatör.
 - **Kapatma:** sol alttaki **Kapat** düğmesi (arka plandaki sunucuyu da durdurur).
 - **Claude ile:** `-ClaudeKayit` sonrası Claude'a doğrudan "THYAO'nun finansal oranlarını getir" gibi sorular sorabilirsin. Bu klasörde Claude Code açarsan Avcı'nın 11 komutu (`/trader-...`) da kullanılabilir.
+
+### Senaryo Haritası (Simülatör → Senaryo)
+Fiyatın geleceğini **tahmin etmez**. Geçmiş günlük hareketleri karıştırarak (blok bootstrap) 10.000 olası yol üretir ve
+"geçmiş davranışa göre aralık ne kadar geniş olabilir?" sorusunu gösterir:
+- **Olasılık konisi:** 1 hafta – 1 yıl ufkunda %50 ve %90 aralıkları, yükselme ve ±%10 olasılıkları.
+- **"Ya şöyle olursa?":** Sen bir varsayım girersin (ör. 5. günde %-10 ani değişim, yıllık getiri beklentisi, oynaklık çarpanı); koni yeniden çizilir. Varsayım senindir, tahmin değildir.
+- **Benzer geçmiş durumlar:** Geçmişte benzer bir düşüş/yükselişten sonra ne olduğunu gösterir; örnek sayısı azsa uyarır.
+- Haber, savaş, ani karar gibi geçmişte görülmemiş olaylar konide yoktur. Fonlar için TEFAS verisi 1'er yıllık parçalarla çekilir.
 
 ### Bilinmesi gerekenler
 - Kâşif'in ilk isteği 15–25 sn sürebilir (Borsa MCP ısınıyor).
@@ -86,7 +96,7 @@ Her ajan kendi sanal ortamında çalışır; panel onların kodunu değiştirmez
 
 ```
 ajan-borsa/
-├─ ajan-merkezi/           panel: server.py, web/ (HTML/CSS/JS), workers/backtest.py
+├─ ajan-merkezi/           panel: server.py, web/ (HTML/CSS/JS), workers/ (backtest, bist_zaman, scenario)
 ├─ araclar/                yardımcı betikler (Alpaca bağlantısı)
 ├─ vectorbt-lab/           vectorbt örnek betiği ve bağımlılık listesi
 ├─ kur.ps1                 tek adımlı kurulum

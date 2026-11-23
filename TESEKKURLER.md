@@ -51,6 +51,7 @@ Her kaynağın kendi kullanım koşulları geçerlidir. Veriler gecikmeli veya h
 ## Ajan Borsa'nın kendi eklemeleri
 - **BIST Zaman Makinesi** (`ajan-merkezi/workers/bist_zaman.py`): day-trader-skill'deki Zaman Makinesi fikrinden esinlenerek
   Borsa İstanbul seansı (10:00–18:00) için sıfırdan yazıldı; day-trader-skill'in kodunu kopyalamaz.
+- **Senaryo Haritası** (`ajan-merkezi/workers/scenario.py`): geçmiş getirilerden blok bootstrap ile olasılık konisi üretir; fon verisi Borsa MCP'nin TEFAS kaynağından gelir. Tahmin değil, senaryodur.
 - Avcı'nın BIST modundaki tarama, KAP haberleri ve finansallar Borsa MCP araçlarıyla sağlanır.
 
 Bir kaynağı eksik ya da yanlış belirttiysem lütfen bir issue açın, hemen düzeltirim.
